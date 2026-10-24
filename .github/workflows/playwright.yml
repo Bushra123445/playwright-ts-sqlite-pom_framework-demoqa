@@ -1,10 +1,19 @@
-name: Playwright Tests
+name: Playwright Tests and Report Deploy
 
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -24,27 +33,48 @@ jobs:
 
       - run: npm test
 
-      - name: Upload Extent-style report (with videos)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: extent-report
-          path: extent-report/
-          retention-days: 14
-
-      - name: Upload Playwright HTML report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 14
-
-      - name: Report info
+      - name: Prepare report site
         if: always()
         run: |
-          echo "### Test reports" >> $GITHUB_STEP_SUMMARY
-          echo "Scroll down to the **Artifacts** section of this run and download:" >> $GITHUB_STEP_SUMMARY
-          echo "- **extent-report** (open index.html: DB data, steps, screenshots, video)" >> $GITHUB_STEP_SUMMARY
-          echo "- **playwright-report** (HTML report with traces)" >> $GITHUB_STEP_SUMMARY
-          
+          mkdir -p site
+          cp -r extent-report site/extent-report || true
+          cp -r playwright-report site/playwright-report || true
+          cat > site/index.html <<'EOF'
+          <!doctype html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Test Reports</title>
+            <style>
+              body{font-family:Segoe UI,Arial,sans-serif;background:#f1f3f6;margin:0;padding:48px;color:#222}
+              h1{color:#1f2a44}
+              a{display:block;background:#fff;padding:18px 24px;margin:14px 0;border-radius:8px;box-shadow:0 1px 3px #0002;text-decoration:none;color:#1f2a44;font-size:18px;max-width:520px}
+              a small{display:block;color:#666;font-size:13px;margin-top:4px}
+            </style>
+          </head>
+          <body>
+            <h1>DemoQA Playwright Test Reports</h1>
+            <a href="extent-report/index.html">Extent-style Report<small>DB data, steps, screenshots and video</small></a>
+            <a href="playwright-report/index.html">Playwright HTML Report<small>Steps, traces and attachments</small></a>
+          </body>
+          </html>
+          EOF
+
+      - name: Upload site for GitHub Pages
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy Reports to GitHub Pages
+    needs: test
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
