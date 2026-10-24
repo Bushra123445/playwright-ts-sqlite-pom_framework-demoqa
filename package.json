@@ -1,0 +1,17 @@
+{
+  "name": "demoqa-playwright-pom",
+  "version": "1.0.0",
+  "description": "Playwright + TypeScript POM framework: DemoQA form, SQLite data, Extent-style report",
+  "scripts": {
+    "seed": "ts-node scripts/seedDb.ts",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "report": "start extent-report\\index.html"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^24.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  }
+}
