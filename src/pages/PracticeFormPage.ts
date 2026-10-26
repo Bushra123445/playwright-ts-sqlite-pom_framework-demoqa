@@ -108,12 +108,14 @@ export class PracticeFormPage extends BasePage {
   /** Reads the result modal into a { label: value } map. */
   async readResultTable(): Promise<Record<string, string>> {
     const rows = this.modal.locator('tbody tr');
-    const n = await rows.count();
+    // pehle intezar karein ke saari 10 rows aa jayen (Student Name ... State and City)
+    await expect(rows).toHaveCount(10);
+    // phir saari rows ek hi dafa mein parh lein, beech mein table badalne ka masla nahi
+    const data = await rows.evaluateAll(trs =>
+      trs.map(tr => Array.from(tr.querySelectorAll('td')).map(td => (td.textContent ?? '').trim()))
+    );
     const out: Record<string, string> = {};
-    for (let i = 0; i < n; i++) {
-      const cells = rows.nth(i).locator('td');
-      out[(await cells.nth(0).innerText()).trim()] = (await cells.nth(1).innerText()).trim();
-    }
+    for (const [label, value] of data) out[label] = value ?? '';
     return out;
   }
 
@@ -132,7 +134,7 @@ export class PracticeFormPage extends BasePage {
     expect(t['State and City']).toBe(`${d.state} ${d.city}`);
   }
 
-   async closeModal() {
+  async closeModal() {
     await this.closeBtn.scrollIntoViewIfNeeded();
 
     const closeStrategies: Array<() => Promise<unknown>> = [

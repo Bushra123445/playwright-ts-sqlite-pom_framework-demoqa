@@ -8,6 +8,7 @@ export default defineConfig({
   workers: 1,
   reporter: [
     ['list'],
+    ['html', { open: 'never' }],
     ['./src/reporters/ExtentReporter.ts', { outputFile: 'extent-report/index.html', title: 'DemoQA Form - Automation Report' }],
   ],
   use: {
